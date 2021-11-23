@@ -146,9 +146,9 @@ class Tensor(np.ndarray):
 
     def flatten(self):
         if self.requires_grad:
-            return Tensor(self.__array__.reshape(-1), _back = FlattenBack(), requires_grad = True)
+            return Tensor(super().reshape(-1), _parents = (self,), _back = FlattenBack(), requires_grad = True)
         else:
-            return Tensor(self.__array__.reshape(-1), requires_grad = False)
+            return Tensor(super().reshape(-1), requires_grad = False)
 
     @staticmethod
     def sigmoid(tensor):
