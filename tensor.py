@@ -1,6 +1,8 @@
 import numpy as np
 from copy import deepcopy
 import logging
+from numbers import Number
+from backfuncs.reciprocalback import ReciprocalBack
 import logging_settings
 from backfuncs import *
 
@@ -77,11 +79,12 @@ class Tensor(np.ndarray):
             return Tensor(self.asarray() * asarray(other), _parents = (self, other), _back = MulBack(), requires_grad = True)
         else:
             return Tensor(self.asarray() * asarray(other), requires_grad = False)
-    
-    #! TODO: __div__ and __rdiv__
+
     def __sub__(self, other):
         return self + (-other)
 
+    def __truediv__(self, other):
+        return self * (1 / other)
     
     def __neg__(self):
         if self.requires_grad:
@@ -97,13 +100,22 @@ class Tensor(np.ndarray):
             return Tensor(self.asarray() @ asarray(other), _parents = (self,other), _back = MatMulBack(), requires_grad = True)
         else:
             return Tensor(self.asarray() @ asarray(other), requires_grad = False)
-
+    
     def __radd__(self, other):
         return self.__add__(other)
     def __rmul__(self, other):
         return self.__mul__(other)
     def __rsub__(self, other):
         return self.__mul__(other)
+    def __rtruediv__(self, other):
+        if isinstance(other, Number):
+            if self.requires_grad:
+                return Tensor(other / self.asarray(), _parents = (self,), _back = ReciprocalBack(numerator=other), requires_grad = True)
+            else:
+                return Tensor(other / self.asarray(), requires_grad = False)
+        else:
+            return other * (1 / self)
+
     def __rmatmul__(self, other):
         assert isinstance(other, np.ndarray), f"__rmatmul__ only supported for np.ndarray subclasses, called for {type(other)}"
         if self.ndim == 1 and other.ndim == 1:
@@ -116,7 +128,7 @@ class Tensor(np.ndarray):
     def sum(self, axis = None):
         if self.requires_grad:
             return Tensor(
-                super().sum(axis=axis), #HOLY SHIT THIS WORKS
+                super().sum(axis=axis),
                 _parents = (self,), _back = SumBack(axis), requires_grad = True
             )
         else:
@@ -124,11 +136,11 @@ class Tensor(np.ndarray):
     def transpose(self, axes = None):
         if self.requires_grad:
             return Tensor(
-                super().transpose(),
+                super().transpose(axes),
                 _parents = (self, ), _back = TransposeBack(axes), requires_grad=True
             )
         else:
-            return Tensor(super().transpose(), requires_grad = False)
+            return Tensor(super().transpose(axes), requires_grad = False)
     def dot(self, other):
         return (self * other).sum()
 
@@ -195,4 +207,4 @@ def zeros(shape,requires_grad=False,*args, **kwargs):
 def ones(shape,requires_grad=False, *args, **kwargs):
     return Tensor(np.ones(shape), requires_grad=requires_grad,*args, **kwargs)
 def rand(shape,requires_grad=False, *args, **kwargs):
-    return Tensor(np.random.rand(*shape) / np.prod(shape), requires_grad=requires_grad,*args, **kwargs)
+    return Tensor(np.random.rand(*shape), requires_grad=requires_grad,*args, **kwargs)

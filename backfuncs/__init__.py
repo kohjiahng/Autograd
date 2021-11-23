@@ -7,4 +7,5 @@ from backfuncs.matmulback import MatMulBack
 from backfuncs.sigmoidback import SigmoidBack
 from backfuncs.flattenback import FlattenBack
 from backfuncs.transposeback import TransposeBack
+from backfuncs.reciprocalback import ReciprocalBack
 

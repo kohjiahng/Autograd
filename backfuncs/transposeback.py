@@ -5,4 +5,6 @@ class TransposeBack(BackFunc):
         self.axes = axes
         self.inverse_axes = np.argsort(axes) if axes else None
     def __call__(self,tensor):
-        tensor._parents[0]._add_grad(tensor.grad.transpose(axes = self.inverse_axes))
+        assert len(tensor._parents) == 1, f"TransposeBack called with > 1 parents"
+        A, = tensor._parents
+        A._add_grad(tensor.grad.transpose(self.inverse_axes))

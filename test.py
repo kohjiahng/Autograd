@@ -5,11 +5,11 @@ import numpy as np
 import unittest
 import logging_settings
 import logging
+import math
 np.random.seed(0)
 def numericGradient(function, X, epsilon: float = 1e-6):
     '''
     Function takes in 1 array argument X, outputs a single value
-    Epsilon is scaled by 1/X.size
     '''
     it = np.nditer(X, flags=['multi_index','refs_ok'])
     fX = function(X)
@@ -18,24 +18,25 @@ def numericGradient(function, X, epsilon: float = 1e-6):
         Y = X.asarray().copy()
         Y[it.multi_index] += epsilon
         Y = tensor.tensor(Y)
-        logging.warning(f"{fX}, {epsilon}, {Y}, {it.multi_index}: {function(Y)}")
         grad[it.multi_index] = ((function(Y) - fX) / epsilon).item()
     return grad
 
 class CustomAssertMixin:
-    
     def assertArrayEqual(self, A, B):
         assert np.array_equal(A, B), f"Array {A} != {B}"
-    def assertArrayAlmostEqual(self, A, B, msg = None, delta = 1e-3):
+    def assertArrayAlmostEqual(self, A, B, msg = None, delta = 1e-2):
         for i,j in zip(A.reshape(-1), B.reshape(-1)):
-            self.assertAlmostEqual(
-                i, j,
-                msg = msg if msg else None,
-                delta = delta
-            )
+            if max(abs(i), abs(j)) < 1:
+                self.assertTrue(
+                    math.isclose(i, j, abs_tol=1e-3), msg = f"{i} != {j} with absolute tolerance {1e-3}"
+                )
+            else:
+                self.assertTrue(
+                    math.isclose(i, j, rel_tol=1e-3), msg = f"{i} != {j} with relative tolerance {1e-3}"
+                )
     def assertGradient(self, function, X, grad): # Uses numeric methods to get gradient
         
-        self.assertArrayAlmostEqual(numericGradient(function, X, epsilon=1) , grad)
+        self.assertArrayAlmostEqual(numericGradient(function, X, epsilon=1e-6) , grad)
 
 class TestTensorFunctions(unittest.TestCase, CustomAssertMixin):
     def assertArrayEqual(self, A, B, msg = None):
@@ -140,11 +141,20 @@ class TestTensorBackwardOperators(unittest.TestCase, CustomAssertMixin):
         A = tensor.rand((3,3), requires_grad=True)
         B = tensor.rand((3,), requires_grad=True)
         (A*B).sum().backward()
-        def operations(A, B):
+        def operations(A=A.no_grad(), B=B.no_grad()):
             C = (A * B)
             return C.sum()
-        self.assertGradient(lambda A: operations(A=A.no_grad(), B=B.no_grad()), A, A.grad)
-        self.assertGradient(lambda B: operations(A=A.no_grad(), B=B.no_grad()), B, B.grad)
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A, A.grad)
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B, B.grad)
+        self.assertEqual(tensor.Tensor.total_connections, 0)      
+    def test_rmul(self): # Test broadcasting
+        A = tensor.rand((3,3), requires_grad=True)
+        B = np.random.rand(*(3,))
+        (A*B).sum().backward()
+        def operations(A=A.no_grad(), B=B):
+            C = (A * B)
+            return C.sum()
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A, A.grad)
         self.assertEqual(tensor.Tensor.total_connections, 0)      
     def test_matmul(self):
         A = tensor.rand((3,3,5), requires_grad=True)
@@ -162,52 +172,83 @@ class TestTensorBackwardOperators(unittest.TestCase, CustomAssertMixin):
         B = tensor.rand((3,5,3), requires_grad = True)
         (A@B).sum().backward()
 
-        def operations(A, B):
+        def operations(A=A.no_grad(), B=B.no_grad()):
             C = (A @ B)
             return C.sum()
-        self.assertGradient(lambda A: operations(A=A.no_grad(), B=B.no_grad()), A, A.grad)
-        self.assertGradient(lambda B: operations(A=A.no_grad(), B=B.no_grad()), B, B.grad)
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A, A.grad)
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B, B.grad)
         self.assertEqual(tensor.Tensor.total_connections, 0)
     def test_matmul_3(self):
         A = tensor.rand((5,4,5), requires_grad=True)
         B = tensor.rand((1,5,3), requires_grad = True)
         (A@B).sum().backward()
 
-        def operations(A, B):
+        def operations(A=A.no_grad(), B=B.no_grad()):
             C = (A @ B)
             return C.sum()
-        self.assertGradient(lambda A: operations(A=A.no_grad(), B=B.no_grad()), A, A.grad)
-        self.assertGradient(lambda B: operations(A=A.no_grad(), B=B.no_grad()), B, B.grad)
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A, A.grad)
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B, B.grad)
         self.assertEqual(tensor.Tensor.total_connections, 0)
     def test_matmul_4(self):
         A = tensor.rand((5,4,5), requires_grad=True)
         B = np.random.rand(*(1,5,3))
         (A@B).sum().backward()
 
-        def operations(A, B):
+        def operations(A=A.no_grad(), B=B):
             C = (A @ B)
             return C.sum()
-        self.assertGradient(lambda A: operations(A=A.no_grad(), B=B), A, A.grad)
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A, A.grad)
         self.assertEqual(tensor.Tensor.total_connections, 0)
     def test_rmatmul(self):
         A = np.random.rand(*(5,4,5))
         B = tensor.rand((1,5,3), requires_grad=True)
         (A@B).sum().backward()
 
-        def operations(A, B):
+        def operations(A=A, B=B.no_grad()):
             C = (A @ B)
             return C.sum()
 
-        self.assertGradient(lambda B: operations(A=A, B=B.no_grad()), B, B.grad)
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B, B.grad)
         self.assertEqual(tensor.Tensor.total_connections, 0)
+    def test_truediv(self):
+        A = tensor.tensor(1., requires_grad=True)
+        B = tensor.tensor(2., requires_grad=True)
+        C = A / B
+        C.backward()
 
+        A_grad = np.array(0.5)
+        B_grad = np.array(-0.25)
+
+        self.assertArrayEqual(A.grad, A_grad)
+        self.assertArrayEqual(B.grad, B_grad)
+        self.assertEqual(tensor.Tensor.total_connections, 0)
+    def test_truediv_2(self): # Test broadcasting
+        A = tensor.rand((3,3), requires_grad=True)
+        B = tensor.rand((3,), requires_grad=True)
+        (A/B).sum().backward()
+        def operations(A=A.no_grad(), B=B.no_grad()):
+            return (A / B).sum()
+
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A, A.grad)
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B, B.grad)
+        self.assertEqual(tensor.Tensor.total_connections, 0)   
+
+    def test_rtruediv(self): # Test broadcasting
+        A = np.random.rand(*(3,3))
+        B = tensor.rand((3,), requires_grad=True)
+        (A/B).sum().backward()
+        def operations(A=A, B=B.no_grad()):
+            return (A / B).sum()
+
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B, B.grad)
+        self.assertEqual(tensor.Tensor.total_connections, 0)   
 class TestTensorBackwardFunctions(unittest.TestCase, CustomAssertMixin):
     def test_sum(self):
-        # A = tensor.ones((2, 2, 2, 2), requires_grad=True)
-        # B = tensor.ones((2, 2), requires_grad=True) * 2
+        A = tensor.rand((2, 2, 2, 2), requires_grad=True)
+        B = tensor.rand((2, 2), requires_grad=True)
 
-        A = tensor.ones((2,2),requires_grad=True)
-        B = tensor.tensor([1.,2],requires_grad=True)
+        # A = tensor.rand((2,2),requires_grad=True)
+        # B = tensor.tensor([1.,2],requires_grad=True)
         (A.sum(axis = 0) * B).sum().backward()
 
         def operations(A=A.no_grad(), B=B.no_grad()):
@@ -216,8 +257,17 @@ class TestTensorBackwardFunctions(unittest.TestCase, CustomAssertMixin):
         self.assertGradient(lambda A: operations(A=A.no_grad()), A.copy(), A.grad)
         self.assertGradient(lambda B: operations(B=B.no_grad()), B.copy(), B.grad)
         self.assertEqual(tensor.Tensor.total_connections, 0)
+    def test_transpose(self):
+        A = tensor.rand((2, 3, 2), requires_grad=True)
+        B = tensor.rand((2, 2, 3), requires_grad=True)
+        (A.transpose((0, 2, 1)) * B).sum().backward()
+        def operations(A=A.no_grad(), B=B.no_grad()):
+            return (A.transpose((0, 2, 1)) * B).sum()
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A.copy(), A.grad)
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B.copy(), B.grad)
+        self.assertEqual(tensor.Tensor.total_connections, 0)
 
-    
+        
 
 if __name__ == '__main__':
     unittest.main()

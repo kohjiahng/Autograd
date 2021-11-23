@@ -5,7 +5,8 @@ class SumBack(BackFunc):
         self.axis = axis
     def __call__(self,tensor):
         assert len(tensor._parents) == 1, "SumBack called with > 1 parent"
+        A, = tensor._parents
         if self.axis:
-            tensor._parents[0]._add_grad(np.expand_dims(tensor.grad,self.axis)) # Broadcasting :)
+            A._add_grad(np.expand_dims(tensor.grad,self.axis)) # Broadcasting :)
         else:
-            tensor._parents[0]._add_grad(tensor.grad)
+            A._add_grad(tensor.grad)

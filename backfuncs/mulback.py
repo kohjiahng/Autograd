@@ -7,6 +7,11 @@ class MulBack(BackFunc):
 
         assert len(tensor._parents) == 2, f"MulBack called with {len(tensor._parents)} parents, expected 2"
         A, B = tensor._parents
+        A_arr, B_arr = A, B
+        if type(A) is type(tensor):
+            A_arr = A.asarray()
+        if type(B) is type(tensor):
+            B_arr = B.asarray()
 
         if isinstance(A, Number):
             B._add_grad(A * tensor.grad)
@@ -20,8 +25,8 @@ class MulBack(BackFunc):
 
         # np.sum over the smaller axes to get gradients
         if type(A) is type(tensor) and A.requires_grad:
-            A_grad = (B.asarray() * tensor.grad).sum(axis = tuple((A_shape < B_shape).nonzero()[0]), keepdims = True);
+            A_grad = (B_arr * tensor.grad).sum(axis = tuple((A_shape < B_shape).nonzero()[0]), keepdims = True);
             A._add_grad(A_grad.squeeze(tuple(range((B.ndim - A.ndim)))))
         if type(B) is type(tensor) and B.requires_grad:
-            B_grad = (A.asarray() * tensor.grad).sum(axis = tuple((B_shape < A_shape).nonzero()[0]), keepdims = True);
+            B_grad = (A_arr * tensor.grad).sum(axis = tuple((B_shape < A_shape).nonzero()[0]), keepdims = True);
             B._add_grad(B_grad.squeeze(tuple(range((A.ndim - B.ndim)))))
