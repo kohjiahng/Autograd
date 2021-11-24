@@ -1,5 +1,4 @@
-from backfuncs.backfunc import BackFunc
-
+from autograd.backfuncs.backfunc import BackFunc
 class ReshapeBack(BackFunc):
     def __init__(self, order):
         self.order = order

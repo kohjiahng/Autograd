@@ -1,4 +1,4 @@
-from modules.module import Module
+from autograd.modules.module import Module
 class Sequential(Module):
     def __init__(self, modules):
         super().__init__()

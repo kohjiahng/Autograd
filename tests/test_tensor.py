@@ -1,5 +1,6 @@
-from backfuncs import *
-import tensor
+import sys
+sys.path.insert(1, './')
+from autograd import *
 from copy import deepcopy
 import numpy as np
 import unittest

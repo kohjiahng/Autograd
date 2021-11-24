@@ -2,9 +2,8 @@ import numpy as np
 from copy import deepcopy
 import logging
 from numbers import Number
-from backfuncs.reciprocalback import ReciprocalBack
 import logging_settings
-from backfuncs import *
+from autograd.backfuncs import *
 
 class Tensor(np.ndarray):
     total_connections = 0 # Total number of operators in computation graph

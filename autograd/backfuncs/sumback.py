@@ -1,4 +1,4 @@
-from backfuncs.backfunc import BackFunc
+from autograd.backfuncs.backfunc import BackFunc
 import numpy as np
 class SumBack(BackFunc):
     def __init__(self, axis = None):

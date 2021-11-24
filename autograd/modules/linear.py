@@ -1,6 +1,6 @@
-from modules.module import Module
+from autograd.modules.module import Module
 import numpy as np
-import tensor
+import autograd.tensor as tensor
 class Linear(Module):
     def __init__(self, input_dim: int, output_dim: int, bias = True, init_weights = None):
         self.input_dim = input_dim

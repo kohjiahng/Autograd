@@ -1,4 +1,4 @@
-from backfuncs.backfunc import BackFunc
+from autograd.backfuncs.backfunc import BackFunc
 from copy import deepcopy
 from numbers import Number
 import numpy as np

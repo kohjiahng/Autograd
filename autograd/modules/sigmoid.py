@@ -1,5 +1,5 @@
-from modules.module import Module
-import tensor
+from autograd.modules.module import Module
+import autograd.tensor as tensor
 class Sigmoid(Module):
     def __init__(self):
         pass

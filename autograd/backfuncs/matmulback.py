@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-from backfuncs.backfunc import BackFunc
+from autograd.backfuncs.backfunc import BackFunc
 class MatMulBack(BackFunc): # Need to add broadcasting
     def __call__(self,tensor):
         assert len(tensor._parents) == 2, f"MatMulBack called with {len(tensor._parents)} parents"

@@ -1,6 +1,4 @@
-from backfuncs.backfunc import BackFunc
-from copy import deepcopy
-
+from autograd.backfuncs.backfunc import BackFunc
 class ReciprocalBack(BackFunc):
     def __init__(self, numerator = 1):
         self.numerator = numerator

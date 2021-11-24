@@ -1,4 +1,4 @@
-from backfuncs.backfunc import BackFunc
+from autograd.backfuncs.backfunc import BackFunc
 import numpy as np
 class TransposeBack(BackFunc):
     def __init__(self, axes = None):

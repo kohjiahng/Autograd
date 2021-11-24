@@ -1,4 +1,4 @@
-from backfuncs.backfunc import BackFunc
+from autograd.backfuncs.backfunc import BackFunc
 import numpy as np
 from numbers import Number
 class AddBack(BackFunc):
