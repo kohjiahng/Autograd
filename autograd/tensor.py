@@ -4,6 +4,7 @@ import logging
 from numbers import Number
 import logging_settings
 from autograd.backfuncs import *
+from scipy.special import expit
 
 class Tensor(np.ndarray):
     total_connections = 0 # Total number of operators in computation graph
@@ -12,7 +13,7 @@ class Tensor(np.ndarray):
         dtype = None
         if 'dtype' in kwargs:
             dtype = kwargs['dtype']
-        elif kwargs.get('requires_grad'):
+        elif requires_grad:
             dtype = 'float64'
 
         obj = np.asarray(arr, dtype=dtype, *args, **kwargs).view(cls)
@@ -141,7 +142,8 @@ class Tensor(np.ndarray):
             return Tensor(super().transpose(axes), requires_grad = False)
     def dot(self, other):
         return (self * other).sum()
-
+    def l2(self):
+        return self.dot(self)
     def reshape(self, shape, order = 'C'):
         if self.requires_grad:
             return Tensor(super().reshape(shape, order=order), _parents = (self,), _back = ReshapeBack(order=order), requires_grad = True)
@@ -150,12 +152,14 @@ class Tensor(np.ndarray):
 
     def flatten(self, order='C'):
         return self.reshape(-1, order=order)
+    def item(self):
+        return super().item()
     @staticmethod
     def sigmoid(tensor):
         if tensor.requires_grad:
-            return Tensor(1 / (1 - np.exp(-tensor.asarray())), requires_grad=True, _back=SigmoidBack())
+            return Tensor(expit(tensor.asarray()), _parents = (tensor, ), requires_grad=True, _back=SigmoidBack())
         else:
-            return Tensor(1 / (1 - np.exp(-tensor.asarray())), requires_grad=False)
+            return Tensor(expit(tensor.asarray()), requires_grad=False)
 
     # BACKPROPAGATION CODE
     def _backward(self):

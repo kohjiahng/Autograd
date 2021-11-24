@@ -40,19 +40,9 @@ class CustomAssertMixin:
         self.assertArrayAlmostEqual(numericGradient(function, X, epsilon=1e-6) , grad)
 
 class TestTensorFunctions(unittest.TestCase, CustomAssertMixin):
-    def assertArrayEqual(self, A, B, msg = None):
-        self.assertTrue(
-            np.array_equal(A, B),
-            msg if msg else f"Array {A} != {B}"
-        )
-
-    def assertArrayAlmostEqual(self, A, B, msg = None, delta = 1e-3):
-        self.assertAlmostEqual(
-            np.absolute(A - B).max(), 
-            0,
-            msg = msg if msg else f"Array {A} !~ {B}",
-            delta = delta
-        )
+    def test_dtypes(self):
+        A = tensor.tensor([1,2], requires_grad=True)
+        self.assertTrue(A.dtype == 'float64')
     def test_add(self):
         A = tensor.tensor([1,2])
         B = tensor.tensor([2,3])

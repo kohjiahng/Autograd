@@ -7,3 +7,5 @@ class Sequential(Module):
         for module in self.modules:
             X = module(X)
         return X
+    def parameters(self):
+        return [parameter for module in self.modules for parameter in module.parameters()]
