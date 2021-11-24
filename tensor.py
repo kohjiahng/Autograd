@@ -144,12 +144,14 @@ class Tensor(np.ndarray):
     def dot(self, other):
         return (self * other).sum()
 
-    def flatten(self):
+    def reshape(self, shape, order = 'C'):
         if self.requires_grad:
-            return Tensor(super().reshape(-1), _parents = (self,), _back = FlattenBack(), requires_grad = True)
+            return Tensor(super().reshape(shape, order=order), _parents = (self,), _back = ReshapeBack(order=order), requires_grad = True)
         else:
-            return Tensor(super().reshape(-1), requires_grad = False)
+            return Tensor(super().reshape(shape,order=order), requires_grad = False)
 
+    def flatten(self, order='C'):
+        return self.reshape(-1, order=order)
     @staticmethod
     def sigmoid(tensor):
         if tensor.requires_grad:

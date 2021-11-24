@@ -276,6 +276,16 @@ class TestTensorBackwardFunctions(unittest.TestCase, CustomAssertMixin):
         self.assertGradient(lambda B: operations(B=B.no_grad()), B.copy(), B.grad)
         self.assertEqual(tensor.Tensor.total_connections, 0)
 
+    def test_reshape(self):
+        A = tensor.rand((2, 3, 2), requires_grad=True)
+        B = tensor.rand((3,4), requires_grad=True)
+        (A.reshape((3,4)) * B).sum().backward()
+        def operations(A=A.no_grad(), B=B.no_grad()):
+            return (A.reshape((3,4)) * B).sum()
+        self.assertGradient(lambda A: operations(A=A.no_grad()), A.copy(), A.grad)
+        self.assertGradient(lambda B: operations(B=B.no_grad()), B.copy(), B.grad)
+        self.assertEqual(tensor.Tensor.total_connections, 0)
+
         
 
 if __name__ == '__main__':
