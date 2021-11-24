@@ -9,35 +9,34 @@ from backfuncs import *
 class Tensor(np.ndarray):
     total_connections = 0 # Total number of operators in computation graph
 
-    def __new__(cls, arr, *args, **kwargs):
+    def __new__(cls, arr,requires_grad = False, _parents = (), _back = None, *args, **kwargs):
         dtype = None
         if 'dtype' in kwargs:
             dtype = kwargs['dtype']
         elif kwargs.get('requires_grad'):
             dtype = 'float64'
 
-        obj = np.asarray(arr, dtype=dtype).view(cls)
-        return obj
-    def __init__(self, arr, requires_grad = False, _parents = (), _back = None, *args, **kwargs):
-        '''
-        _back is a function which takes in an object and propogates gradients to parents
-        '''
-        self.requires_grad = requires_grad
-        self._parents = _parents
+        obj = np.asarray(arr, dtype=dtype, *args, **kwargs).view(cls)
+
+        obj.requires_grad = requires_grad
+        obj._parents = _parents
         if requires_grad:
-            self._back = _back
+            obj._back = _back
             
 
             if isinstance(_back, BackFunc):
                 Tensor.total_connections += 1
 
-            self.grad = np.zeros(self.shape, dtype=self.dtype)
-            self._out_degree, self._resolved_degree = 0, 0 # Out degree in computation graph
+            obj.grad = np.zeros(obj.shape, dtype=obj.dtype)
+            obj._out_degree, obj._resolved_degree = 0, 0 # Out degree in computation graph
 
-            for parent in self._grad_parents():
+            for parent in obj._grad_parents():
                 parent._out_degree += 1
         else:
-            self._back, self.grad, self._out_degree, self._resolved_degree = None, None, None, None
+            obj._back, obj.grad, obj._out_degree, obj._resolved_degree = None, None, None, None
+
+        return obj
+    
 
     def asarray(self):
         return self.__array__()
@@ -106,7 +105,7 @@ class Tensor(np.ndarray):
     def __rmul__(self, other):
         return self.__mul__(other)
     def __rsub__(self, other):
-        return self.__mul__(other)
+        return other + (-self)
     def __rtruediv__(self, other):
         if isinstance(other, Number):
             if self.requires_grad:
@@ -158,6 +157,8 @@ class Tensor(np.ndarray):
             return Tensor(1 / (1 - np.exp(-tensor.asarray())), requires_grad=True, _back=SigmoidBack())
         else:
             return Tensor(1 / (1 - np.exp(-tensor.asarray())), requires_grad=False)
+
+    # BACKPROPAGATION CODE
     def _backward(self):
         if not self.requires_grad:
             return
