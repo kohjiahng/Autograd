@@ -22,8 +22,6 @@ class Tensor(np.ndarray):
         obj._parents = _parents
         if requires_grad:
             obj._back = _back
-            
-
             if isinstance(_back, BackFunc):
                 Tensor.total_connections += 1
 
@@ -34,9 +32,7 @@ class Tensor(np.ndarray):
                 parent._out_degree += 1
         else:
             obj._back, obj.grad, obj._out_degree, obj._resolved_degree = None, None, None, None
-
         return obj
-    
 
     def asarray(self):
         return self.__array__()
@@ -141,7 +137,7 @@ class Tensor(np.ndarray):
         else:
             return Tensor(super().transpose(axes), requires_grad = False)
     def dot(self, other):
-        assert self.ndim == 1 and other.ndim == 1, "Dot called for >1 dim"
+        # assert self.ndim == 1 and other.ndim == 1, "Dot called for >1 dim"
         return (self * other).sum()
     def l2(self):
         return self.dot(self)
@@ -162,14 +158,26 @@ class Tensor(np.ndarray):
         else:
             return Tensor(expit(tensor.asarray()), requires_grad=False)
     @staticmethod
-    def softmax(tensor):
-        assert tensor.ndim == 1, "Softmax called for >1 dim"
-        arr = tensor.asarray()
-        result = np.exp(arr - arr.max()) / np.exp(arr - arr.max()).sum()
+    def log(tensor):
         if tensor.requires_grad:
-            return Tensor(result, _parents = (tensor, ), requires_grad=True, _back=SoftmaxBack())
+            return Tensor(np.log(tensor.asarray()), _parents = (tensor, ), requires_grad=True, _back=LogBack())
+        else:
+            return Tensor(np.log(tensor.asarray()), requires_grad=False)
+    @staticmethod
+    def softmax(tensor,axis = -1):
+        arr = tensor.asarray()
+        result = np.exp(arr - arr.max(axis=axis,keepdims=True)) / np.exp(arr - arr.max(axis=axis,keepdims=True)).sum(axis=axis, keepdims = True)
+        if tensor.requires_grad:
+            return Tensor(result, _parents = (tensor, ), requires_grad=True, _back=SoftmaxBack(axes=axis))
         else:
             return Tensor(result, requires_grad=False)
+
+    @staticmethod
+    def scalarmax(tensor,c=0):
+        if tensor.requires_grad:
+            return Tensor(np.maximum(c, tensor.asarray()), _parents = (tensor, ), requires_grad=True, _back=ScalarMaxBack(c=c))
+        else:
+            return Tensor(np.maximum(c, tensor.asarray()), requires_grad=False)
     # BACKPROPAGATION CODE
     def _backward(self):
         if not self.requires_grad:

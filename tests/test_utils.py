@@ -20,6 +20,7 @@ class CustomAssertMixin:
     def assertArrayEqual(self, A, B):
         assert np.array_equal(A, B), f"Array {A} != {B}"
     def assertArrayAlmostEqual(self, A, B, msg = None):
+        logging.info(f"Numeric: {A}, Computed: {B}")
         for i,j in zip(A.reshape(-1), B.reshape(-1)):
             if max(abs(i), abs(j)) < 1:
                 self.assertTrue(
