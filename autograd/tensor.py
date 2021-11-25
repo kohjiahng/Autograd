@@ -141,6 +141,7 @@ class Tensor(np.ndarray):
         else:
             return Tensor(super().transpose(axes), requires_grad = False)
     def dot(self, other):
+        assert self.ndim == 1 and other.ndim == 1, "Dot called for >1 dim"
         return (self * other).sum()
     def l2(self):
         return self.dot(self)
@@ -160,7 +161,15 @@ class Tensor(np.ndarray):
             return Tensor(expit(tensor.asarray()), _parents = (tensor, ), requires_grad=True, _back=SigmoidBack())
         else:
             return Tensor(expit(tensor.asarray()), requires_grad=False)
-
+    @staticmethod
+    def softmax(tensor):
+        assert tensor.ndim == 1, "Softmax called for >1 dim"
+        arr = tensor.asarray()
+        result = np.exp(arr - arr.max()) / np.exp(arr - arr.max()).sum()
+        if tensor.requires_grad:
+            return Tensor(result, _parents = (tensor, ), requires_grad=True, _back=SoftmaxBack())
+        else:
+            return Tensor(result, requires_grad=False)
     # BACKPROPAGATION CODE
     def _backward(self):
         if not self.requires_grad:
