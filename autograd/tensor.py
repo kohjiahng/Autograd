@@ -198,6 +198,16 @@ class Tensor(np.ndarray):
             _new.grad, _new._back, _new._parents = None, None, ()
             _new.requires_grad = False
             return _new
+    def require_grad(self, inplace = False):
+        if inplace:
+            self.grad, self._back, self._parents = np.zeros(self.shape, dtype=self.dtype), None, ()
+            self.requires_grad = True
+            return self
+        else:
+            _new = deepcopy(self)
+            _new.grad, _new._back, _new._parents = np.zeros(_new.shape, dtype=_new.dtype), None, ()
+            _new.requires_grad = True
+            return _new
     def zero_grad(self):
         self.grad.fill(0)
         self._resolved_degree = 0

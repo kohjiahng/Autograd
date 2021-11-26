@@ -6,4 +6,4 @@ class CrossEntropyLoss:
     def __call__(self, yhat, y):
         # 1e-15 added to prevent log0 errors
         assert yhat.ndim == 2 and y.ndim == 2, f"Cross Entropy Loss called with {yhat.ndim} dims, expected 2"
-        return -tensor.Tensor.log(yhat + 1e-15).dot(y)
+        return (-tensor.Tensor.log(yhat + 1e-15).dot(y)) / len(y)
