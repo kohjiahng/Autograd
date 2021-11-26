@@ -1,4 +1,3 @@
-import random
 import numpy as np
 import logging
 from collections.abc import Iterable 
@@ -9,7 +8,7 @@ class DataLoader:
         dataset has to be indexed
         '''
         if seed:
-            random.seed(seed)
+            np.random.seed(seed)
 
         self.dataset = dataset
         self.batch_size = batch_size
@@ -17,11 +16,15 @@ class DataLoader:
     def __len__(self):
         return ceil(len(self.dataset) / self.batch_size)
     def __getitem__(self, idx):
-        return self.dataset[idx]
+        if isinstance(idx, Iterable):
+            return [self.dataset[i] for i in idx]
+        else:
+            return self.dataset[idx]
     def __iter__(self):
-        _order = list(range(len(self.dataset)))
+        _order = np.arange(len(self.dataset))
         if self.shuffle:
-            random.shuffle(_order)
+            np.random.shuffle(_order)
+        _order = np.array_split(_order, len(self))
         return DataLoaderIterator(self, _order)
 
 class DataLoaderIterator:
@@ -30,14 +33,10 @@ class DataLoaderIterator:
         self._order = order
         self._index = 0
     def __next__(self):
-        if self._index >= len(self._dataloader.dataset):
+        if self._index == len(self._dataloader):
             raise StopIteration
-
-        left = self._index
-        right = min(len(self._dataloader.dataset), self._index + self._dataloader.batch_size)
-        self._index += self._dataloader.batch_size
-        self._index = right
-        data = [self._dataloader.dataset[self._order[i]] for i in range(left, right)]
+        data = self._dataloader[self._order[self._index]]
+        self._index += 1
         if len(data) > 0 and isinstance(data[0], Iterable):
             return tuple(
                 # np.vstack(field) if len(field) > 0 and isinstance(field[0],np.ndarray)\
